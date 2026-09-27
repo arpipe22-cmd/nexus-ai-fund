@@ -419,7 +419,7 @@ pre.code{white-space:pre-wrap;word-break:break-all;font-size:11px;background:#07
     </section>
     <section class="section"><div class="heading"><h2>市場モニター</h2><span>タップでチャート</span></div><div class="card"><div class="asset-grid" id="assets"></div></div></section>
     <section class="section"><div class="heading"><h2>直近アクション</h2><span>AI委員会ログ</span></div><div class="card" id="logs"></div></section>
-    <section class="section"><div class="warning">NEXUS AI FUNDはAI投資シミュレーションです。価格はアプリ内で生成したシミュレーション値で、損益はデモ口座のものです。実際の注文や資金移動は、ユーザーが外部接続を明示的に設定した場合を除き行いません。利益を保証するものではありません。</div></section>
+    <section class="section"><div class="warning">NEXUS AI FUNDはAI投資シミュレーションです。リアル価格モードでは公開データの実際の価格を使い、取得できない銘柄はアプリ内のシミュレーション値を使います（銘柄ごとに表示）。損益はすべてデモ口座のものです。実際の注文や資金移動は、ユーザーが外部接続を明示的に設定した場合を除き行いません。利益を保証するものではありません。</div></section>
   </main>
 
   <!-- チャート -->
@@ -481,6 +481,7 @@ pre.code{white-space:pre-wrap;word-break:break-all;font-size:11px;background:#07
 
   <!-- 運用 -->
   <main id="tab-ops" class="tabpane hidden">
+    <section class="section"><div class="heading"><h2>価格データ・学習モード</h2><span id="feedModeText">—</span></div><div class="card" id="feedPanel"></div></section>
     <section class="section">
       <div class="heading"><h2>自動執行（EA）</h2><span id="eaModeText">—</span></div>
       <div class="card">
@@ -523,6 +524,7 @@ pre.code{white-space:pre-wrap;word-break:break-all;font-size:11px;background:#07
     <section class="section"><div class="heading"><h2>AI社員の能力</h2><span>タップで詳細</span></div><div class="card" id="learnAgents"></div></section>
     <section class="section"><div class="heading"><h2>市場・時間足・レジーム別</h2><span>サンプル数つき</span></div><div class="card" id="learnBreakdown"></div></section>
     <section class="section"><div class="heading"><h2>Mistake Memory</h2><span>同じミスの防止</span></div><div class="card" id="mistakes"></div></section>
+    <section class="section"><div class="heading"><h2>損切り・利確の学習</h2><span>AIが距離を自分で決める</span></div><div class="card" id="armPanel"></div></section>
     <section class="section"><div class="heading"><h2>思考レンズ</h2><span id="lensTotal">合計100%</span></div><div class="card" id="lensPanel"></div></section>
     <section class="section"><div class="heading"><h2>思考比較モード</h2><span id="cmpAssetName">—</span></div><div class="card"><div class="seg" id="cmpSeg"></div><div id="compare" style="margin-top:8px"></div></div></section>
     <section class="section"><div class="heading"><h2>スキルツリー</h2><span>判断実績でポイント獲得</span></div><div class="card" id="skills"></div></section>
@@ -624,20 +626,20 @@ function alignedStart(){const d=new Date();d.setSeconds(0,0);return d.getTime()}
 function defaultState(){
  const agents={};for(const id of AGENT_IDS)agents[id]=blankAgent();
  return{version:VERSION,createdAt:Date.now(),
-  settings:{engine:true,autoSkill:true,chatter:true,sound:false,committeeFx:true,leverage:25,startBalance:1e6,chartAsset:'BTCUSD',chartTf:'15m',cmpAsset:'ETHUSD'},
+  settings:{engine:true,autoSkill:true,priceMode:'real',priceModeApplied:'',learnMode:true,learnRisk:1,tdKey:'',tdNasdaq:'QQQ',chatter:true,sound:false,committeeFx:true,leverage:25,startBalance:1e6,chartAsset:'BTCUSD',chartTf:'15m',cmpAsset:'ETHUSD'},
   strategy:{mode:'バランス',focus:'全市場',risk:'中',horizon:'短期'},
   account:{balance:1e6,peak:1e6,dayStart:1e6,dayKey:dayKey(),realized:0,wins:0,trades:0,lossStreak:0,lastLossSim:0,dailyLoss:0,grossWin:0,grossLoss:0},
   company:{xp:0,level:1},sim:{t:alignedStart()},lastPrices:{},
   positions:[],trades:[],tradeAgg:{n:0,wins:0,pnl:0},logs:[],chat:[],
   conversation:{lastTopic:'status',lastAsset:null,lastUserText:'',lastTarget:'全員',lastAnswerers:[],lastLens:null,turn:0},
   agents,marketLearning:{},regimeLearning:{},tfLearning:{},
-  mistakes:{},reviews:[],counterfactuals:[],pendingCF:[],shadow:[],journal:[],ruleChanges:[],rules:{rrBias:0,slBias:0,cfN:0},
+  mistakes:{},reviews:[],counterfactuals:[],pendingCF:[],shadow:[],journal:[],ruleChanges:[],rules:{rrBias:0,slBias:0,cfN:0,holdN:0,holdActual:0,holdPnl:0},armLearn:{sl:{},rr:{}},replayLearning:{markets:{},regimes:{}},feedCredits:null,
   lens:{mix:{value:0,quant:35,momentum:25,contrarian:0,risk:25,macro:15,custom:0,yozawa:0},custom:defaultCustomLens('カスタム'),yozawa:defaultYozawaLens()},
   lensStats:{},skills:{},signals:[],news:[],
   ea:{mode:'paper',kill:false,killReason:'',limits:defaultLimits(),relayUrl:'',relayOn:false,relayStatus:'未設定',relaySeen:[],bridgeUrl:'',bridgeOk:false,lastTickReal:Date.now(),cooldownUntilSim:0},
   orders:[],processedIds:[],sigLog:[],
   calc:{side:'BUY',balance:null,lev:25,lot:.1,entry:null,tp:null,sl:null,asset:null,riskPct:1},
-  meta:{learnVer:0,lastCommitteeSim:0,reviewsTotal:0,exploreCount:0,migratedFrom:null,bootCount:0}};
+  meta:{learnVer:0,lastCommitteeSim:0,reviewsTotal:0,exploreCount:0,migratedFrom:null,bootCount:0,replayT:{},replayTrades:0,refills:0,learnTrades:0}};
 }
 function num(o,k,d){return fin(o&&o[k],d)}
 function arr(v,cap){return Array.isArray(v)?(cap?v.slice(-cap):v):[]}
@@ -667,7 +669,9 @@ function hydrateV5(x){
  s.ea=Object.assign(d.ea,obj(x.ea));s.ea.limits=Object.assign(defaultLimits(),obj(x.ea?.limits));if(!['paper','off','live'].includes(s.ea.mode))s.ea.mode='paper';
  if(s.ea.mode==='live'&&!s.ea.bridgeOk)s.ea.mode='paper';s.ea.relaySeen=arr(s.ea.relaySeen,200);
  s.orders=arr(x.orders,80);s.processedIds=arr(x.processedIds,400);s.sigLog=arr(x.sigLog,30);
- s.calc=Object.assign(d.calc,obj(x.calc));s.meta=Object.assign(d.meta,obj(x.meta));
+ s.armLearn={sl:obj(x.armLearn?.sl),rr:obj(x.armLearn?.rr)};s.replayLearning={markets:obj(x.replayLearning?.markets),regimes:obj(x.replayLearning?.regimes)};s.feedCredits=x.feedCredits&&typeof x.feedCredits==='object'?x.feedCredits:null;
+ if(!['sim','real'].includes(s.settings.priceMode))s.settings.priceMode='real';s.settings.learnRisk=clamp(fin(s.settings.learnRisk,1),.1,3);
+ s.calc=Object.assign(d.calc,obj(x.calc));s.meta=Object.assign(d.meta,obj(x.meta));s.meta.replayT=obj(s.meta.replayT);
  return s;
 }
 function normalizeMix(mix){let t=LENS_IDS.reduce((a,k)=>a+Math.max(0,fin(mix[k])),0);if(t<=0){mix.quant=50;mix.risk=50;t=100}let acc=0;LENS_IDS.forEach(k=>{mix[k]=Math.round(Math.max(0,fin(mix[k]))/t*100);acc+=mix[k]});const diff=100-acc;if(diff){const top=LENS_IDS.slice().sort((a,b)=>mix[b]-mix[a])[0];mix[top]+=diff}return mix}
@@ -741,7 +745,17 @@ const NEWS_TPL={
  XAUUSD:[['地政学リスクで安全資産需要','ドル高で金に売り圧力']]
 };
 const Market={
- data:{},model:{},cur:{},ver:0,cache:new Map(),lastReal:Date.now(),
+ data:{},model:{},cur:{},ver:0,cache:new Map(),lastReal:Date.now(),src:{},status:{},lastUpd:{},err:{},fxRef:null,lastTickT:0,
+ isReal(a){const t=this.src[a]?.type;return !!t&&t!=='sim'},
+ staleLimit(a){return this.src[a]?.type==='td'?900:25},
+ staleSec(a){return this.isReal(a)?(Date.now()-fin(this.lastUpd[a],0))/1000:(Date.now()-this.lastReal)/1000},
+ tradeable(a){if(!this.isReal(a))return true;return this.status[a]==='live'&&this.staleSec(a)<this.staleLimit(a)},
+ statusText(a){if(!this.isReal(a))return state.settings.priceMode==='real'?'シミュレーション（リアル価格なし）':'シミュレーション';const st=this.status[a];if(st==='loading')return'読み込み中';if(st==='error')return'取得エラー：'+(this.err[a]||'');if(this.staleSec(a)>=this.staleLimit(a))return this.src[a].type==='td'?'休場中または更新停止':'データ更新が止まっています';return'リアル価格（'+this.src[a].label+'）'},
+ srcTag(a){if(!this.isReal(a))return['シミュ',''];if(this.status[a]!=='live')return[this.status[a]==='error'?'エラー':'読込中','a'];if(!this.tradeable(a))return['休場','a'];return[this.src[a].proxy?'代用':'リアル',this.src[a].proxy?'v':'g']},
+ setBars(a,tf,bars){const ok=bars.filter(c=>Array.isArray(c)&&c.length===6&&c.every(Number.isFinite)).sort((x,y)=>x[0]-y[0]);if(!ok.length)return;this.data[a][tf]=ok.slice(-TF_CAP[tf]);if(tf==='1m')this.cur[a]=ok[ok.length-1][4];this.ver++;this.cache.clear()},
+ mergeBars(a,tf,bars){const arr=this.data[a][tf];for(const b of bars.sort((x,y)=>x[0]-y[0])){if(!b.every(Number.isFinite))continue;let i=arr.length-1;while(i>=0&&arr[i][0]>b[0])i--;if(i>=0&&arr[i][0]===b[0])arr[i]=b;else arr.splice(i+1,0,b)}if(arr.length>TF_CAP[tf])arr.splice(0,arr.length-TF_CAP[tf]);this.ver++;this.cache.clear()},
+ applyReal(a,p,onSub){if(!(p>0))return;const t=Date.now();this.cur[a]=p;this.push(a,t,p,0);this.lastUpd[a]=t;if(this.status[a]!=='live')this.status[a]='live';this.ver++;this.cache.clear();if(onSub)onSub(a,p,t)},
+
  newRegime(asset,r=rnd){const u=r(),t=u<.3?'up':u<.6?'down':'range',v=r();const volMult=v<.15?1.8+r()*.6:v<.3?.5+r()*.2:.85+r()*.35;const sig=INSTR[asset].sigma;return{type:t,left:60+Math.floor(r()*420),volMult,drift:t==='up'?sig*(.04+r()*.07):t==='down'?-sig*(.04+r()*.07):0,anchor:null,news:null}},
  genHistory(asset,endPrice,endT){
   const I=INSTR[asset],r=seeded((endT/6e4|0)^asset.length*7919^Math.floor(endPrice)),g=()=>seededGauss(r);
@@ -772,11 +786,11 @@ const Market={
  },
  snapshotForSave(){return{v:1,simT:state.sim.t,data:this.data,model:this.model}},
  price(a){return this.cur[a]},
- usdjpy(){return this.cur.USDJPY||150},
+ usdjpy(){if(state&&state.settings.priceMode==='real'&&!this.isReal('USDJPY')&&this.fxRef)return this.fxRef;return this.cur.USDJPY||150},
  candles(a,tf){return this.data[a]?.[tf]||[]},
  push(a,t,p,v){for(const tf of TF_LIST){const arr=this.data[a][tf],b=Math.floor(t/TF[tf])*TF[tf],L=arr[arr.length-1];if(L&&L[0]===b){if(p>L[2])L[2]=p;if(p<L[3])L[3]=p;L[4]=p;L[5]+=v}else{arr.push([b,L?L[4]:p,Math.max(p,L?L[4]:p),Math.min(p,L?L[4]:p),p,v]);if(arr.length>TF_CAP[tf])arr.splice(0,arr.length-TF_CAP[tf])}}},
  maybeNews(){
-  if(rnd()>1/110)return null;const a=ASSET_ORDER[Math.floor(rnd()*ASSET_ORDER.length)],sent=rnd()<.5?1:-1,real=rnd()<.78,str=.5+rnd()*.5,m=this.model[a],dur=45+Math.floor(rnd()*120);
+  const pool=ASSET_ORDER.filter(x=>!this.isReal(x));if(!pool.length||rnd()>1/110)return null;const a=pool[Math.floor(rnd()*pool.length)],sent=rnd()<.5?1:-1,real=rnd()<.78,str=.5+rnd()*.5,m=this.model[a],dur=45+Math.floor(rnd()*120);
   const n={id:uid('n'),asset:a,sent,str,real,headline:NEWS_TPL[a][0][sent>0?0:1],t:state.sim.t,until:state.sim.t+dur*MIN};
   if(real){m.news={sent,str,left:dur};m.volMult=Math.max(m.volMult,1.25)}
   state.news.push(n);state.news=state.news.slice(-20);return n;
@@ -784,10 +798,12 @@ const Market={
  activeNews(a){return state.news.filter(n=>n.asset===a&&n.until>state.sim.t)},
  /* advance SIM_STEP of simulated time; onSub(a,price,t) is called for each sub-step (TP/SL checks) */
  tick(onSub){
-  const dt=SIM_STEP/SUBSTEPS,dtMin=dt/MIN;
-  for(let s=0;s<SUBSTEPS;s++){
-   state.sim.t+=dt;const t=state.sim.t;
+  const real=state.settings.priceMode==='real',now=Date.now(),steps=real?1:SUBSTEPS;
+  const dt=real?clamp(now-(this.lastTickT||now-TICK_MS),200,5000):SIM_STEP/SUBSTEPS,dtMin=dt/MIN;this.lastTickT=now;
+  for(let s=0;s<steps;s++){
+   state.sim.t=real?Math.max(state.sim.t,now):state.sim.t+dt;const t=state.sim.t;
    for(const a of ASSET_ORDER){
+    if(real&&this.isReal(a))continue;
     const I=INSTR[a],m=this.model[a];m.left-=dtMin;
     if(m.left<=0){const keepNews=m.news;Object.assign(m,this.newRegime(a));m.news=keepNews}
     if(m.type==='range'&&m.anchor==null)m.anchor=this.cur[a];
@@ -827,6 +843,99 @@ function snapAt(S,i,asset){
  return{asset,i,t:bars[i]?.[0],close:c,ema20:S.ema20[i],ema50:S.ema50[i],atr,atrPct:atr/c*100,rsi:S.rsi[i],trendStr,slope,volRatio,z,mom5,mom20,brk,brkDn,regime,confirm,hi50:S.hi50[i],lo50:S.lo50[i],mom3:(c/c3-1)*100};
 }
 function trendText(sn){return sn.trendStr>.6?'上昇':sn.trendStr<-.6?'下降':'横ばい'}
+
+/* ===== feed: real prices (free public data; Twelve Data only with the user's own free key) ===== */
+const Feed={
+ BIN:['https://data-api.binance.vision','https://api.binance.com'],TD:'https://api.twelvedata.com',
+ busy:{},retryAt:{},tdStage:{},lastFx:0,
+ cfg(){
+  const S={},real=state.settings.priceMode==='real',key=normText(state.settings.tdKey),nq=normText(state.settings.tdNasdaq)||'QQQ';
+  for(const a of ASSET_ORDER)S[a]={type:'sim',label:'シミュレーション'};
+  if(real){
+   S.BTCUSD={type:'binance',sym:'BTCUSDT',label:'Binance BTC/USDT'};
+   S.ETHUSD={type:'binance',sym:'ETHUSDT',label:'Binance ETH/USDT'};
+   S.XAUUSD=key?{type:'td',sym:'XAU/USD',label:'Twelve Data XAU/USD'}:{type:'binance',sym:'PAXGUSDT',label:'PAXG（金連動トークン）で代用',proxy:true};
+   if(key){S.USDJPY={type:'td',sym:'USD/JPY',label:'Twelve Data USD/JPY'};S.NASDAQ={type:'td',sym:nq,label:nq==='QQQ'?'QQQ（NASDAQ100連動ETF）で代用':'Twelve Data '+nq,proxy:nq==='QQQ'}}
+   else{S.USDJPY={type:'sim',label:'シミュレーション（APIキー未設定）'};S.NASDAQ={type:'sim',label:'シミュレーション（APIキー未設定）'}}
+  }
+  const N=INSTR.NASDAQ;if(S.NASDAQ.type==='td'&&S.NASDAQ.sym==='QQQ'){N.contract=100;N.dec=2;N.pipName='0.01ドル';N.pip=.01;N.unit='口（100株）'}else{N.contract=1;N.dec=1;N.pip=1;N.pipName='1ポイント';N.unit='枚'}
+  return S;
+ },
+ /* apply configuration; handles sim<->real transitions per asset */
+ reconfigure(){
+  const old=Market.src||{},S=this.cfg(),now=Date.now();Market.src=S;
+  for(const a of ASSET_ORDER){
+   const was=old[a]?.type||'sim',is=S[a].type,changed=was!==is||old[a]?.sym!==S[a].sym;
+   if(is==='sim'){Market.status[a]='sim';if(changed||state.settings.priceMode==='real'){const last=Market.candles(a,'1m').slice(-1)[0];if(changed||!last||last[0]>state.sim.t||state.sim.t-last[0]>30*MIN){Market.data[a]=Market.genHistory(a,Market.price(a)||INSTR[a].price,state.sim.t);Market.model[a]=Market.newRegime(a)}}}
+   else if(changed||Market.status[a]!=='live'){Market.status[a]='loading';Market.err[a]='';this.retryAt[a]=0;this.tdStage[a]=0}
+  }
+  Market.ver++;Market.cache.clear();
+ },
+ async getJSON(url,ms=9000){const c=new AbortController(),tm=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,cache:'no-store'});const j=await r.json().catch(()=>null);if(!r.ok)throw new Error((j&&(j.msg||j.message))||('HTTP '+r.status));return j}catch(e){throw new Error(e.name==='AbortError'?'タイムアウト':e.message)}finally{clearTimeout(tm)}},
+ async bin(path){let err;for(const b of this.BIN){try{return await this.getJSON(b+path)}catch(e){err=e}}throw err},
+ kl(x){return[+x[0],+x[1],+x[2],+x[3],+x[4],+x[5]]},
+ assets(type){return ASSET_ORDER.filter(a=>Market.src[a]?.type===type)},
+ fail(a,e){Market.status[a]='error';Market.err[a]=String(e.message||e).slice(0,80);this.retryAt[a]=Date.now()+60000},
+ async backfillBinance(a){
+  const s=Market.src[a];this.busy[a]=true;
+  try{for(const tf of TF_LIST){const k=await this.bin(`/api/v3/klines?symbol=${s.sym}&interval=${tf}&limit=${Math.min(1000,TF_CAP[tf])}`);if(Market.src[a]!==s)return;Market.setBars(a,tf,k.map(x=>this.kl(x)))}
+   Market.lastUpd[a]=Date.now();Market.status[a]='live';if(state.calc.asset===a)state.calc.asset=null;AC.delete(a);addLog('データ',`${INSTR[a].short}のリアル価格を読み込みました（${s.label}）`,'📡');markDirty()}
+  catch(e){this.fail(a,e)}finally{this.busy[a]=false}
+ },
+ async pollBinance(){
+  const as=this.assets('binance').filter(a=>Market.status[a]==='live');if(!as.length||this.busy.binT)return;this.busy.binT=true;
+  try{const syms=as.map(a=>Market.src[a].sym),j=await this.bin(`/api/v3/ticker/price?symbols=${encodeURIComponent(JSON.stringify(syms))}`);
+   for(const r of Array.isArray(j)?j:[]){const a=as.find(x=>Market.src[x].sym===r.symbol);if(a&&Market.src[a].type==='binance')Market.applyReal(a,+r.price,onPriceSub)}}
+  catch(e){}finally{this.busy.binT=false}
+ },
+ async refreshBinanceBars(tfs){
+  if(this.busy.binK)return;this.busy.binK=true;
+  try{for(const a of this.assets('binance').filter(x=>Market.status[x]==='live'))for(const tf of tfs){const k=await this.bin(`/api/v3/klines?symbol=${Market.src[a].sym}&interval=${tf}&limit=3`);if(Market.src[a]?.type==='binance')Market.mergeBars(a,tf,k.map(x=>this.kl(x)))}}
+  catch(e){}finally{this.busy.binK=false}
+ },
+ /* ---- Twelve Data (free key; credits counted to stay inside the free tier) ---- */
+ credits(n){const d=new Date().toISOString().slice(0,10),C=state.feedCredits||(state.feedCredits={day:d,used:0});if(C.day!==d){C.day=d;C.used=0}if(n)C.used+=n;return C},
+ tdLeft(){return 780-this.credits().used},
+ async td(path,nsym){if(this.tdLeft()<nsym)throw new Error('本日の無料枠（800回）を使い切りました');this.credits(nsym);const j=await this.getJSON(`${this.TD}/${path}&timezone=UTC&apikey=${encodeURIComponent(normText(state.settings.tdKey))}`,12000);if(j&&j.status==='error')throw new Error(j.message||'エラー');markDirty();return j},
+ parseTD(j,sym,multi){const o=multi?j[sym]:j;if(!o||o.status==='error'||!Array.isArray(o.values))throw new Error((o&&o.message)||'データなし');return o.values.map(v=>[Date.parse(String(v.datetime).replace(' ','T')+(String(v.datetime).length<=10?'T00:00:00Z':'Z')),+v.open,+v.high,+v.low,+v.close,Math.max(1,+v.volume||1)]).filter(b=>b.every(Number.isFinite)).reverse()},
+ agg(bars,tf){const T=TF[tf],out=[];for(const b of bars){const k=Math.floor(b[0]/T)*T,L=out[out.length-1];if(L&&L[0]===k){L[2]=Math.max(L[2],b[2]);L[3]=Math.min(L[3],b[3]);L[4]=b[4];L[5]+=b[5]}else out.push([k,b[1],b[2],b[3],b[4],b[5]])}return out},
+ async tdBatch(interval,size){const as=this.assets('td');if(!as.length)return null;const syms=as.map(a=>Market.src[a].sym),multi=syms.length>1;const j=await this.td(`time_series?symbol=${encodeURIComponent(syms.join(','))}&interval=${interval}&outputsize=${size}`,syms.length);const out={};for(const a of as){try{out[a]=this.parseTD(j,Market.src[a].sym,multi)}catch(e){out[a]=e}}return out},
+ async backfillTD(){
+  if(this.busy.td)return;this.busy.td=true;
+  try{
+   const need=this.assets('td').filter(a=>Market.status[a]!=='live');
+   const m1=await this.tdBatch('1min',500),h1=await this.tdBatch('1h',300);
+   for(const a of need){const b1=m1?.[a],bh=h1?.[a];if(b1 instanceof Error||!b1?.length){this.fail(a,b1 instanceof Error?b1:new Error('データなし'));continue}
+    Market.setBars(a,'1m',b1);for(const tf of ['5m','15m','30m'])Market.setBars(a,tf,this.agg(b1,tf));if(Array.isArray(bh)&&bh.length){Market.setBars(a,'1h',bh);Market.setBars(a,'4h',this.agg(bh,'4h'))}else{Market.setBars(a,'1h',this.agg(b1,'1h'));Market.setBars(a,'4h',this.agg(b1,'4h'))}
+    Market.lastUpd[a]=b1[b1.length-1][0]>Date.now()-20*MIN?Date.now():b1[b1.length-1][0];Market.status[a]='live';if(state.calc.asset===a)state.calc.asset=null;AC.delete(a);this.tdStage[a]=Date.now()+65000;addLog('データ',`${INSTR[a].short}のリアル価格を読み込みました（${Market.src[a].label}）`,'📡')}
+  }catch(e){for(const a of this.assets('td'))if(Market.status[a]!=='live')this.fail(a,e)}
+  finally{this.busy.td=false;markDirty()}
+ },
+ async tdDetail(){ /* 5-minute history after the per-minute credit window resets */
+  if(this.busy.td)return;const as=this.assets('td').filter(a=>this.tdStage[a]&&Date.now()>this.tdStage[a]);if(!as.length)return;this.busy.td=true;
+  try{const m5=await this.tdBatch('5min',400);for(const a of as){this.tdStage[a]=0;const b=m5?.[a];if(Array.isArray(b)&&b.length){Market.setBars(a,'5m',b);Market.setBars(a,'15m',this.agg(b,'15m'));Market.setBars(a,'30m',this.agg(b,'30m'))}}}
+  catch(e){for(const a of as)this.tdStage[a]=0}finally{this.busy.td=false}
+ },
+ async pollTD(){
+  if(this.busy.td)return;const as=this.assets('td').filter(a=>Market.status[a]==='live');if(!as.length)return;this.busy.td=true;
+  try{const r=await this.tdBatch('1min',3);for(const a of as){const b=r?.[a];if(!Array.isArray(b)||!b.length)continue;const last=b[b.length-1];Market.mergeBars(a,'1m',b);
+    if(last[0]>Date.now()-20*MIN){Market.applyReal(a,last[4],onPriceSub)}}}
+  catch(e){}finally{this.busy.td=false}
+ },
+ async testKey(key){const j=await this.getJSON(`${this.TD}/price?symbol=USD/JPY&apikey=${encodeURIComponent(key)}`,10000);if(j&&j.status==='error')throw new Error(j.message||'キーが無効です');if(!(+j?.price>0))throw new Error('応答が不正です');this.credits(1);return +j.price},
+ async fx(){try{const j=await this.getJSON('https://api.frankfurter.app/latest?from=USD&to=JPY');const v=+j?.rates?.JPY;if(v>0){Market.fxRef=v;return}}catch(e){}try{const j=await this.getJSON('https://open.er-api.com/v6/latest/USD');const v=+j?.rates?.JPY;if(v>0)Market.fxRef=v}catch(e){}},
+ tick(n){
+  if(state.settings.priceMode!=='real')return;const now=Date.now();
+  for(const a of this.assets('binance'))if(Market.status[a]!=='live'&&!this.busy[a]&&now>=fin(this.retryAt[a]))this.backfillBinance(a);
+  if(this.assets('td').some(a=>Market.status[a]!=='live'&&now>=fin(this.retryAt[a]))&&!this.busy.td)this.backfillTD();
+  if(n%3===0)this.pollBinance();
+  if(n%30===0)this.refreshBinanceBars(['1m']);
+  if(n%180===0)this.refreshBinanceBars(['5m','15m','30m','1h','4h']);
+  if(n%10===0)this.tdDetail();
+  const tdEvery=this.tdLeft()<200?300:120;if(n%tdEvery===0)this.pollTD();
+  if(!this.assets('td').includes('USDJPY')&&(now-this.lastFx>3600e3)){this.lastFx=now;this.fx()}
+ }
+};
 
 /* ===== calc engine: P/L, margin, lot sizing (pure, asset-class aware) ===== */
 function quoteToJPY(asset,usdjpy){return INSTR[asset].quote==='JPY'?1:fin(usdjpy,150)||150}
@@ -954,6 +1063,22 @@ function recordMistakes(keys,win,trade){
 }
 function addRule(text){state.ruleChanges.push({t:state.sim.t,time:nowStr(),text});state.ruleChanges=state.ruleChanges.slice(-40)}
 
+/* ---- SL / RR chosen by the AI itself (bandit over R-multiples; learning mode explores, normal mode uses what was learned) ---- */
+const ARMS={sl:[0.8,1.2,1.6,2.2,3,4.5],rr:[1.2,1.6,2,2.6,3.2]};
+const ARM_DEF={sl:1.6,rr:2};
+function armTbl(kind){return state.armLearn[kind]||(state.armLearn[kind]={})}
+function armStat(kind,arm){const t=armTbl(kind),k=String(arm);return t[k]||(t[k]={n:0,sum:0,wins:0})}
+function armMean(st){return st&&st.n?st.sum/st.n:0}
+function pickArm(kind,explore){
+ const arms=ARMS[kind],t=armTbl(kind),un=arms.filter(a=>fin(t[String(a)]?.n)<2);
+ if(un.length)return un[Math.floor(rnd()*un.length)];
+ if(rnd()<(explore??.25))return arms[Math.floor(rnd()*arms.length)];
+ const N=arms.reduce((s,a)=>s+t[String(a)].n,0);let best=arms[0],bv=-1e9;
+ for(const a of arms){const st=t[String(a)],v=armMean(st)+.8*Math.sqrt(Math.log(N+1)/st.n);if(v>bv){bv=v;best=a}}return best;
+}
+function bestArm(kind,minN=20){const t=armTbl(kind);let best=null,bv=-1e9;for(const a of ARMS[kind]){const st=t[String(a)];if(!st||st.n<minN)continue;const v=armMean(st);if(v>bv){bv=v;best=a}}return best}
+function armRecord(kind,arm,r){if(arm==null||!Number.isFinite(r))return;const st=armStat(kind,arm);st.n++;st.sum+=clamp(r,-2,6);if(r>0)st.wins++}
+
 /* ===== lensEngine: thinking lenses, blending, comparison ===== */
 const LENSES={
  value:{name:'長期価値型',sub:'Buffett-inspired / 公開原則ベース',color:'#ffd36b',desc:'長期視点・理解できる対象・質・財務健全性・安全余裕を重視。高頻度売買を避け、期待値が不明確なら見送ります。',note:'公開されている投資原則を抽象化したスタイルです。ウォーレン・バフェット本人の判断を再現・代弁するものではありません。'},
@@ -1052,6 +1177,8 @@ function parseLensMix(text){
 const HORIZON_TF={短期:'5m',中期:'1h'},MAX_HOLD={短期:90,中期:600},PASS_LINE={守り:64,バランス:59,攻め:55};
 const RISK_PCT={低:.5,中:1,高:2},MODE_SCALE={守り:.7,バランス:1,攻め:1.3},COMMITTEE_EVERY={守り:9,バランス:6,攻め:4};
 function lensTrail(){const m=state.lens.mix,c=m.custom,y=m.yozawa;if(c+y<50)return false;return(c>=y?state.lens.custom:state.lens.yozawa).exit==='トレーリング'}
+function learnMode(){return !!state.settings.learnMode}
+function effLimits(){const L=state.ea.limits;if(!learnMode())return L;return Object.assign({},L,{maxPositions:Math.max(L.maxPositions,5),maxLot:Math.max(L.maxLot,1000),maxExposurePct:L.maxExposurePct*3,maxCorrExposurePct:L.maxCorrExposurePct*3,maxRiskPct:Math.max(L.maxRiskPct,state.settings.learnRisk)})}
 function horizonTf(){return HORIZON_TF[state.strategy.horizon]||'5m'}
 function unrealized(){return state.positions.reduce((a,p)=>a+fin(p.pnl),0)}
 function equity(){return state.account.balance+unrealized()}
@@ -1071,8 +1198,8 @@ function addLog(source,text,icon){state.logs.push(mkLog(source,text,icon))}
 /* ---------- analysis (committee pre-evaluation) ---------- */
 function newsScore(a){let s=0;for(const n of Market.activeNews(a)){const age=(state.sim.t-n.t)/MIN;s+=n.sent*n.str*Math.max(.2,1-age/150)}return clamp(s,-1.5,1.5)}
 function analyze(asset,opts={}){
- const tf=opts.tf||horizonTf(),flat=!!opts.flat,blend=lensBlend(asset,tf,opts.mix||state.lens.mix),c=blend.ctx,sn=c.sn,S0=state.strategy,lim=state.ea.limits;
- const entry=Market.price(asset),dd=drawdownPct(),I=INSTR[asset];
+ const tf=opts.tf||horizonTf(),flat=!!opts.flat,blend=lensBlend(asset,tf,opts.mix||state.lens.mix),c=blend.ctx,sn=c.sn,S0=state.strategy,lim=effLimits();
+ const entry=Market.price(asset),dd=drawdownPct(),I=INSTR[asset],LM=learnMode();
  // ren: news + sentiment (+macro with skill)
  const nS=newsScore(asset)*(1+.08*(skillLv('ren','news')-1)),mS=clamp(sn.mom3/Math.max(.02,sn.atrPct),-2,2)*(.5+.08*(skillLv('ren','sentiment')-1));
  let renS=nS*1.4+mS;if(skillLv('ren','macro')>=2){const mv=evalLens('macro',c);renS+=sideSign(mv.side)*(mv.conf-50)/40*.1*skillLv('ren','macro')}
@@ -1091,14 +1218,16 @@ function analyze(asset,opts={}){
  // kai timing
  const ext=sn.z*dir,maxExt=2.2-.15*(skillLv('kai','entry')-1),timingOk=ext<=maxExt;if(!timingOk)conf-=6;
  // SL/TP
- const slMult=(S0.horizon==='中期'?2:1.5)*(1+state.rules.slBias),slDist=sn.atr*slMult;
+  let slArm=null,rrArm=null,exitSrc='標準';
+  if(LM&&!opts.fixedExit){slArm=pickArm('sl');rrArm=pickArm('rr');exitSrc='探索'}else{const bs=bestArm('sl'),br=bestArm('rr');if(bs!=null){slArm=bs;exitSrc='学習済み'}if(br!=null)rrArm=br}
+ const slMult=(slArm!=null?slArm*(S0.horizon==='中期'?1.33:1):(S0.horizon==='中期'?2:1.5))*(1+state.rules.slBias),slDist=sn.atr*slMult;
  const custDom=(state.lens.mix.custom+state.lens.mix.yozawa)>=50,custRR=(state.lens.custom.rr*state.lens.mix.custom+state.lens.yozawa.rr*state.lens.mix.yozawa)/Math.max(1,state.lens.mix.custom+state.lens.mix.yozawa);
- const rr=clamp((custDom?custRR:1.8)+state.rules.rrBias+.05*(skillLv('kai','tp')-1),1.1,3.5);
+  const rr=clamp((custDom?custRR:rrArm!=null?rrArm:1.8)+state.rules.rrBias+.05*(skillLv('kai','tp')-1),1.1,3.5);
  const sl=entry-dir*slDist,tp=entry+dir*slDist*rr;
  // sizing (risk first)
- let riskPct=RISK_PCT[S0.risk]*MODE_SCALE[S0.mode]*blend.size;const sizeNotes=[];
- if(dd>1.5){const k=1-Math.min(.6,dd/10*(.5+.1*skillLv('rei','dd')));riskPct*=k;sizeNotes.push(`DD${dd.toFixed(1)}%でロット×${k.toFixed(2)}`)}
- if(state.account.lossStreak>=2){const k=1-Math.min(.5,.1*state.account.lossStreak*(.6+.1*skillLv('rei','streak')));riskPct*=k;sizeNotes.push(`${state.account.lossStreak}連敗でロット×${k.toFixed(2)}`)}
+  let riskPct=LM?state.settings.learnRisk*clamp(blend.size,.6,1.2):RISK_PCT[S0.risk]*MODE_SCALE[S0.mode]*blend.size;const sizeNotes=[];if(LM)sizeNotes.push('学習モード：リスク'+state.settings.learnRisk+'%基準');
+  if(!LM&&dd>1.5){const k=1-Math.min(.6,dd/10*(.5+.1*skillLv('rei','dd')));riskPct*=k;sizeNotes.push(`DD${dd.toFixed(1)}%でロット×${k.toFixed(2)}`)}
+  if(!LM&&state.account.lossStreak>=2){const k=1-Math.min(.5,.1*state.account.lossStreak*(.6+.1*skillLv('rei','streak')));riskPct*=k;sizeNotes.push(`${state.account.lossStreak}連敗でロット×${k.toFixed(2)}`)}
  const ml=state.marketLearning[asset];if(ml&&ml.n>=5){const k=1+(ml.pnl>0?1:-1)*.03*(skillLv('misa','alloc')-1);riskPct*=k}
  riskPct*=clamp(.85+(conf-60)/100*(.5+.1*skillLv('rei','size')),.6,1.2);
  const patterns=detectPatterns({asset,side,snap:sn,slDist,riskPct,consensus}),pen=mistakePenalty(patterns);
@@ -1109,9 +1238,9 @@ function analyze(asset,opts={}){
  // rei gate
  const gate=safetyPrecheck({asset,side,lot,entry,sl});const reasons=[...gate.reasons];
  if(blend.side==='SKIP')reasons.push('リスク系レンズが見送りを推奨');
- if(pen.cooldown)reasons.push('損失直後のクールダウン中');
- let pass=PASS_LINE[S0.mode]+pen.pass+(S0.horizon==='中期'?1:0);if(consensus<.62)pass+=1+skillLv('misa','committee');
- if(pen.extra&&consensus<.7)reasons.push('意見が割れており追加承認が得られない');
+ if(pen.cooldown&&!LM)reasons.push('損失直後のクールダウン中');
+ let pass=PASS_LINE[S0.mode]+pen.pass+(S0.horizon==='中期'?1:0)-(LM?6:0);if(consensus<.62)pass+=1+skillLv('misa','committee');
+ if(pen.extra&&consensus<.7&&!LM)reasons.push('意見が割れており追加承認が得られない');
  if(!L.ok)reasons.push(L.reason);
  const reiOk=!reasons.length,approved=reiOk&&conf>=pass&&lot>0;
  const reason=!reiOk?reasons[0]:conf<pass?`信頼度${conf}%が必要ライン${pass}%に届かない`:'承認';
@@ -1119,28 +1248,29 @@ function analyze(asset,opts={}){
  const votes=[
   {id:'ren',side:ren.side,p:ren.conf,v:sideJa(ren.side),c:vv(ren,wR),w:wR},
   {id:'quon',side:quon.side,p:quon.conf,v:sideJa(quon.side),c:vv(quon,wQ),w:wQ},
-  {id:'kai',side:timingOk?side:null,p:Math.round(clamp(70-(ext-maxExt)*8,40,92)),v:timingOk?'執行可':'Entry待ち',c:`乖離${ext.toFixed(2)}ATR・SL ${slMult.toFixed(2)}ATR・RR ${rr.toFixed(2)}・重み×${wK.toFixed(2)}`,w:wK},
+  {id:'kai',side:timingOk?side:null,p:Math.round(clamp(70-(ext-maxExt)*8,40,92)),v:timingOk?'執行可':'Entry待ち',c:`乖離${ext.toFixed(2)}ATR・SL ${slMult.toFixed(2)}ATR（${exitSrc}）・RR ${rr.toFixed(2)}・重み×${wK.toFixed(2)}`,w:wK},
   {id:'rei',side:null,p:Math.round(reiOk?80:88),v:reiOk?'承認':'却下',c:(reiOk?`リスク${riskPct.toFixed(2)}%・`:reasons[0]+'・')+`重み×${wRe.toFixed(2)}`,w:wRe},
   {id:'misa',side:approved?side:null,p:conf,v:approved?'最終承認':'見送り',c:`合意${Math.round(consensus*100)}%・必要${pass}%・重み×${wM.toFixed(2)}`,w:wM}];
  const q=Market.usdjpy();
  return{asset,tf,side,entry,sl,tp,lot,conf,pass,approved,reiOk,reason,reasons,votes,blend,sn,patterns,pen,riskPct,rr,slDist,consensus,timingOk,S,agentPart,
-  pnlTp:lot?pnlJPY(asset,side,lot,entry,tp,q):0,pnlSl:lot?pnlJPY(asset,side,lot,entry,sl,q):0,margin:lot?notionalJPY(asset,lot,entry,q)/state.settings.leverage:0,sizeNotes,flat,ren,quon,model};
+  pnlTp:lot?pnlJPY(asset,side,lot,entry,tp,q):0,pnlSl:lot?pnlJPY(asset,side,lot,entry,sl,q):0,margin:lot?notionalJPY(asset,lot,entry,q)/state.settings.leverage:0,sizeNotes,flat,ren,quon,model,slArm,rrArm,exitSrc,LM};
 }
 
 /* ---------- EA safety ---------- */
 function safetyPrecheck(o){
- const r=[],L=state.ea.limits,eq=equity();
+ const r=[],L=effLimits(),eq=equity(),LM=learnMode();
+ if(!Market.tradeable(o.asset))r.push(`${INSTR[o.asset].short}：${Market.statusText(o.asset)}`);
  if(state.ea.kill)r.push('Kill Switchが作動中');
  if(state.positions.length>=L.maxPositions)r.push(`最大ポジション数（${L.maxPositions}）に到達`);
- if(drawdownPct()>=L.maxDDPct)r.push(`最大DD（${L.maxDDPct}%）に到達`);
- if(dayLossPct()>=L.maxDailyLossPct)r.push(`本日の損失上限（${L.maxDailyLossPct}%）に到達`);
- if(state.account.lossStreak>=L.maxConsecLoss&&state.sim.t<state.ea.cooldownUntilSim)r.push(`${state.account.lossStreak}連敗のため停止中`);
+ if(!LM&&drawdownPct()>=L.maxDDPct)r.push(`最大DD（${L.maxDDPct}%）に到達`);
+ if(!LM&&dayLossPct()>=L.maxDailyLossPct)r.push(`本日の損失上限（${L.maxDailyLossPct}%）に到達`);
+ if(!LM&&state.account.lossStreak>=L.maxConsecLoss&&state.sim.t<state.ea.cooldownUntilSim)r.push(`${state.account.lossStreak}連敗のため停止中`);
  if(state.positions.some(p=>p.asset===o.asset&&p.side===o.side))r.push('同銘柄・同方向の建玉あり（二重注文禁止）');
  if(o.lot>0){const q=Market.usdjpy(),n=notionalJPY(o.asset,o.lot,o.entry,q);
   if((state.positions.reduce((a,p)=>a+posNotional(p),0)+n)/Math.max(1,eq)*100>L.maxExposurePct)r.push(`総エクスポージャー上限（${L.maxExposurePct}%）超過`);
   const g=INSTR[o.asset].corr;if(corrExposurePct(g,o.side)+n/Math.max(1,eq)*100>L.maxCorrExposurePct*(1-.05*(skillLv('rei','corr')-1)))r.push('相関資産の同方向エクスポージャー上限超過');
   if(usedMargin()+n/Math.max(1,state.settings.leverage)>eq*.9)r.push('証拠金不足');}
- if(Date.now()-Market.lastReal>L.maxStaleSec*1000)r.push('市場データが古い（stale）');
+ if(!Market.isReal(o.asset)&&Date.now()-Market.lastReal>L.maxStaleSec*1000)r.push('市場データが古い（stale）');
  return{ok:!r.length,reasons:r};
 }
 function genOrderId(){return 'NX-'+Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase()}
@@ -1156,7 +1286,7 @@ function submitOrder(req){
   for(const k of ['lot','entry','sl','tp'])if(!Number.isFinite(o[k])||o[k]<=0)return reject(`${k}が不正（NaN/0）`);
   if(state.ea.mode==='off'&&o.source!=='オーナー')return reject('自動執行停止中');
   if(o.signalTs&&(Date.now()-o.signalTs)/1000>state.ea.limits.maxSignalAgeSec)return reject('シグナルが古い');
-  const L=state.ea.limits;if(o.lot>L.maxLot){o.checks.push(`ロットを上限${L.maxLot}へ縮小`);o.lot=L.maxLot}
+  const L=effLimits();if(o.lot>L.maxLot){o.checks.push(`ロットを上限${L.maxLot}へ縮小`);o.lot=L.maxLot}
   const riskJ=Math.abs(pnlJPY(o.asset,o.side,o.lot,o.entry,o.sl,Market.usdjpy())),eq=equity();
   if(riskJ/Math.max(1,eq)*100>L.maxRiskPct+1e-9){const I=INSTR[o.asset],nl=roundStep(o.lot*(L.maxRiskPct*eq/100)/riskJ,I.lotStep);if(nl<I.minLot)return reject(`1取引リスク上限（${L.maxRiskPct}%）超過`);o.checks.push(`1取引リスク上限に合わせロット${fmtLot(o.lot)}→${fmtLot(nl)}`);o.lot=nl}
   const pre=safetyPrecheck(o);if(!pre.ok)return reject(pre.reasons[0]);
@@ -1184,25 +1314,27 @@ function setKill(on,why){state.ea.kill=!!on;state.ea.killReason=on?(why||'手動
 const Committee={lock:false,token:0,queue:[]};
 function maybeCommittee(){
  if(Committee.lock||!state.settings.engine||state.ea.mode==='off'||state.ea.kill)return;
- const every=COMMITTEE_EVERY[state.strategy.mode]*(state.strategy.horizon==='中期'?1.4:1)*MIN;
+ const every=(learnMode()?2:COMMITTEE_EVERY[state.strategy.mode]*(state.strategy.horizon==='中期'?1.4:1))*MIN;
  if(state.sim.t-state.meta.lastCommitteeSim<every)return;state.meta.lastCommitteeSim=state.sim.t;
  if(Committee.queue.length){const q=Committee.queue.shift();beginCommittee(q.asset,q.opts);return}
- if(state.positions.length>=state.ea.limits.maxPositions)return;
- const cands=focusAssets().filter(a=>!state.positions.some(p=>p.asset===a)).map(a=>({a,r:analyze(a)})).map(x=>(x.score=x.r.conf+(isFocus(x.a)?4:0),x)).sort((x,y)=>y.score-x.score);
- const best=Math.random()<.8?cands[0]:cands[Math.floor(Math.random()*cands.length)];
+ if(state.positions.length>=effLimits().maxPositions)return;
+ const cands=(learnMode()?ASSET_ORDER.slice():focusAssets()).filter(a=>Market.tradeable(a)&&!state.positions.some(p=>p.asset===a)).map(a=>({a,r:analyze(a)})).map(x=>(x.score=x.r.conf+(isFocus(x.a)?4:0),x)).sort((x,y)=>y.score-x.score);
+ let pool=cands;if(learnMode()){const lastA=state.meta.lastCommitteeAsset;pool=cands.filter(x=>x.r.conf>=x.r.pass-8&&x.a!==lastA);if(!pool.length)pool=cands}
+ const best=learnMode()?pool[Math.floor(Math.random()*Math.min(3,pool.length))]:(Math.random()<.8?cands[0]:cands[Math.floor(Math.random()*cands.length)]);
+ if(best)state.meta.lastCommitteeAsset=best.a;
  if(!best||best.r.conf<best.r.pass-8)return;
  beginCommittee(best.a,{source:'AI委員会'});
 }
 function beginCommittee(asset,opts={}){
  if(Committee.lock){Committee.queue.push({asset,opts});return}
- Committee.lock=true;const token=++Committee.token,explore=!opts.forceSide&&Math.random()<LEARN.explore;
+ Committee.lock=true;const token=++Committee.token,explore=!opts.forceSide&&Math.random()<(learnMode()?.2:LEARN.explore);
  const d=analyze(asset,{flat:explore,forceSide:opts.forceSide,tf:opts.tf&&TF[opts.tf]?opts.tf:undefined});d.explore=explore;d.source=opts.source||'AI委員会';d.signal=opts.signal||null;
  state.signals.push({t:state.sim.t,asset,side:d.side,conf:d.conf,approved:false,src:d.source,pending:true});
  addLog('AI委員会',`${INSTR[asset].short} ${sideJa(d.side)}候補の審議を開始${explore?'（探索判断）':''}`,'🧠');beep('committee');
  const warn=[];if(d.pen.hits.length){const h=d.pen.hits[0];warn.push(`ミサ：「この条件（${h.label}）は過去${h.n}回中${h.fails}回失敗しています」`);if(d.pen.lot<1)warn.push(`レイ：「今回はサイズを${Math.round((1-d.pen.lot)*100)}%落とします」`)}
  if(explore)warn.push('探索判断：学習重みを一時的に均等化して評価');
  const finish=()=>{if(token!==Committee.token)return;$('committee').classList.remove('show');finalizeCommittee(d,warn);Committee.lock=false;renderActive()};
- if(!state.settings.committeeFx||document.hidden){finish();return}
+ if(!state.settings.committeeFx||document.hidden||(learnMode()&&d.source==='AI委員会')){finish();return}
  $('committeeAsset').textContent=INSTR[asset].label;$('committeeSide').textContent=`${sideJa(d.side)}候補 · 信頼度 ${d.conf}%（必要 ${d.pass}%）`;$('committeeWarn').innerHTML=warn.map(esc).join('<br>');
  $('committeeMembers').innerHTML=d.votes.map((v,i)=>{const e=employee(v.id);const no=/却下|見送り|待ち/.test(v.v);return`<div class="member" data-step="${i}"><div class="mava">${e.initial}</div><div><b>${e.name} · ${esc(e.role)}</b><small>${esc(v.c)}</small></div><div class="verdict ${no?'no':''}">${esc(v.v)}<br>${v.p}%</div></div>`}).join('');
  $('committeeProgress').style.width='0%';$('committeeStatus').textContent='分析開始';$('committee').classList.add('show');Committee.finish=finish;
@@ -1215,7 +1347,7 @@ function finalizeCommittee(d,warn){
  const I=INSTR[d.asset],sig=state.signals.slice().reverse().find(s=>s.pending&&s.asset===d.asset);if(sig){sig.pending=false;sig.approved=d.approved}
  const msgs=[];if(warn.length&&d.pen.hits.length){const h=d.pen.hits[0];msgs.push(mkMsg('misa',`この条件（${h.label}）は過去${h.n}回中${h.fails}回失敗しています。${d.approved?'必要信頼度を上げた上で通します。':'今回は見送ります。'}`));if(d.pen.lot<1)msgs.push(mkMsg('rei',`今回はサイズを${Math.round((1-d.pen.lot)*100)}%落とします。`))}
  if(d.approved){
-  const ctx={votes:d.votes.map(v=>({id:v.id,side:v.side,p:v.p})),lens:d.blend.verdicts.map(v=>({id:v.id,side:v.side,conf:v.conf,share:v.share})),patterns:d.patterns,consensus:d.consensus,score:d.conf,regime:d.sn.regime,explore:d.explore,trail:lensTrail(),snap:{z:d.sn.z,atr:d.sn.atr,mom5:d.sn.mom5,confirm:d.sn.confirm}};
+  const ctx={votes:d.votes.map(v=>({id:v.id,side:v.side,p:v.p})),lens:d.blend.verdicts.map(v=>({id:v.id,side:v.side,conf:v.conf,share:v.share})),patterns:d.patterns,consensus:d.consensus,score:d.conf,regime:d.sn.regime,explore:d.explore,trail:lensTrail(),slArm:d.slArm,rrArm:d.rrArm,exitSrc:d.exitSrc,learn:d.LM,snap:{z:d.sn.z,atr:d.sn.atr,mom5:d.sn.mom5,confirm:d.sn.confirm}};
   const p=submitOrder({asset:d.asset,side:d.side,lot:d.lot,entry:Market.price(d.asset),sl:d.sl,tp:d.tp,source:d.source,conf:d.conf,tf:d.tf,ctx,signalTs:d.signal?.receivedAt});
   if(p){addLog('カイ',`${I.label}を${sideJa(p.side)}でペーパーエントリー（${fmtLot(p.lot)}ロット）`,'⚡');
    msgs.push(mkMsg('kai',`${I.label}を${sideJa(p.side)}でペーパーエントリー。Entry ${fmtPx(p.asset,p.entry)}／TP ${fmtPx(p.asset,p.tp)}／SL ${fmtPx(p.asset,p.sl)}、${fmtLot(p.lot)}ロット。`)),
@@ -1251,7 +1383,7 @@ function closePosition(id,exitPx,reason){
  const px=fin(exitPx,Market.price(p.asset)),pnl=pnlJPY(p.asset,p.side,p.lot,p.entry,px,Market.usdjpy()),A=state.account;
  state.positions=state.positions.filter(x=>x.id!==id);
  A.balance+=pnl;A.realized+=pnl;A.trades++;const win=pnl>0;if(win){A.wins++;A.grossWin+=pnl;A.lossStreak=0}else{A.grossLoss+=-pnl;A.lossStreak++;A.lastLossSim=state.sim.t;A.dailyLoss+=-pnl}
- if(A.lossStreak>=state.ea.limits.maxConsecLoss)state.ea.cooldownUntilSim=state.sim.t+state.ea.limits.cooldownMin*MIN*(1+.1*(skillLv('rei','streak')-1));
+ if(!learnMode()&&A.lossStreak>=state.ea.limits.maxConsecLoss)state.ea.cooldownUntilSim=state.sim.t+state.ea.limits.cooldownMin*MIN*(1+.1*(skillLv('rei','streak')-1));
  A.peak=Math.max(A.peak,equity());
  const r=pnl/Math.max(1,p.riskJPY);
  const t={id:p.id,orderId:p.orderId,asset:p.asset,side:p.side,lot:p.lot,entry:p.entry,exit:px,tp:p.tp,sl:p.sl0??p.sl,pnl,r,win,openedSim:p.openedSim,closedSim:state.sim.t,reason,regime:p.regime,tf:p.tf,source:p.source,patterns:p.ctx?.patterns||[],mae:p.mae,mfe:p.mfe,conf:p.conf,riskJPY:p.riskJPY};
@@ -1260,8 +1392,10 @@ function closePosition(id,exitPx,reason){
  postTradeReview(p,t);
  state.pendingCF.push({tradeId:t.id,evalAt:state.sim.t+30*MIN});
  gainXp(win?35:14,win?'利益確定':'リスク管理');toast(win?`💰 ${INSTR[p.asset].short} 利確 ${signedYen(pnl)}`:`🛡 ${INSTR[p.asset].short} 損失限定 ${signedYen(pnl)}`);beep(win?'win':'loss');
- const L=state.ea.limits;if(!state.ea.kill&&drawdownPct()>=L.maxDDPct)setKill(true,`最大DD ${L.maxDDPct}% 到達`);
- if(!state.ea.kill&&dayLossPct()>=L.maxDailyLossPct)setKill(true,`日次損失上限 ${L.maxDailyLossPct}% 到達`);
+ if(p.ctx?.learn)state.meta.learnTrades++;
+ if(learnMode()){const st=fin(state.settings.startBalance,1e6);if(equity()<st*.3){const add=st-equity();A.balance+=add;A.peak=equity();A.dayStart=equity();state.meta.refills++;addLog('システム',`学習モード：デモ口座を${yen(add)}補充して学習を続けます（${state.meta.refills}回目）`,'🔋')}}
+ const L=state.ea.limits;if(!learnMode()&&!state.ea.kill&&drawdownPct()>=L.maxDDPct)setKill(true,`最大DD ${L.maxDDPct}% 到達`);
+ if(!learnMode()&&!state.ea.kill&&dayLossPct()>=L.maxDailyLossPct)setKill(true,`日次損失上限 ${L.maxDailyLossPct}% 到達`);
  markDirty();
 }
 
@@ -1274,6 +1408,7 @@ function postTradeReview(p,t){
  verdict.rei=win||Math.abs(t.r)<=1.15;recordCall('rei',{asset:p.asset,tf,regime:reg,correct:verdict.rei,conf:80,pnl:win?t.pnl*.1:0,mae:t.mae});
  aggBump(state.marketLearning,p.asset,win,t.pnl,t.r);aggBump(state.regimeLearning,reg,win,t.pnl,t.r);aggBump(state.tfLearning,tf,win,t.pnl,t.r);
  recordLens(p.ctx?.lens,outcome);
+ if(p.ctx?.slArm!=null)armRecord('sl',p.ctx.slArm,t.r);if(p.ctx?.rrArm!=null)armRecord('rr',p.ctx.rrArm,t.r);
  const pats=(p.ctx?.patterns||[]).slice(),newly=recordMistakes(pats,win,t);
  state.meta.reviewsTotal++;
  const worst=pats.map(k=>({k,m:state.mistakes[k]})).filter(x=>x.m).sort((a,b)=>b.m.rawFails-a.m.rawFails)[0];
@@ -1312,7 +1447,7 @@ function evalCounterfactuals(){
   const run=(tp,sl,side=t.side)=>{const r=simulatePath(t.asset,side,t.entry,tp,sl,t.openedSim,to);return pnlJPY(t.asset,side,t.lot,t.entry,r.exit,q)};
   const rev=t.side==='BUY'?'SELL':'BUY';
   const s={actual:t.pnl,noEntry:0,reverse:run(t.entry-dir*dTp,t.entry+dir*dSl,rev),tpWide:run(t.entry+dir*dTp*1.5,t.sl),tpNarrow:run(t.entry+dir*dTp*.6,t.sl),slWide:run(t.tp,t.entry-dir*dSl*1.5),slTight:run(t.tp,t.entry-dir*dSl*.6),hold:pn(simulatePath(t.asset,t.side,t.entry,t.entry+dir*1e9,t.entry-dir*1e9,t.openedSim,to).exit)};
-  const R=state.rules;R.cfN++;R.tpVote=fin(R.tpVote);R.slVote=fin(R.slVote);
+  const R=state.rules;R.cfN++;R.holdN=fin(R.holdN)+1;R.holdActual=fin(R.holdActual)+t.pnl;R.holdPnl=fin(R.holdPnl)+s.hold;R.tpVote=fin(R.tpVote);R.slVote=fin(R.slVote);
   if(s.tpNarrow>s.actual&&s.tpNarrow>s.tpWide)R.tpVote--;else if(s.tpWide>s.actual&&s.tpWide>s.tpNarrow)R.tpVote++;
   if(s.slWide>s.actual&&s.slWide>s.slTight)R.slVote++;else if(s.slTight>s.actual&&s.slTight>s.slWide)R.slVote--;
   if(R.cfN>=5&&Math.abs(R.tpVote)>=3){const d=Math.sign(R.tpVote)*.05;R.rrBias=clamp(R.rrBias+d,-.4,.4);addRule(`事後検証の結果、TP距離を${d>0?'広げ':'狭め'}ます（RR補正 ${R.rrBias>=0?'+':''}${R.rrBias.toFixed(2)}）`);R.tpVote=0}
@@ -1480,7 +1615,7 @@ function agentReply(id,intent,ctx){
  case 'ren':
   const news=Market.activeNews(a);
   if(intent==='status'){const tm=topMover();return`市場では${INSTR[tm].short}が一番動いています（1時間${pct(Market.change(tm))}）。${I.short}は${pct(Market.change(a))}です。`}
-  if(intent==='outlook'||intent==='market'||intent==='general')return`${I.short}は1時間${pct(Market.change(a))}、短期モメンタム${pct(sn.mom5)}。${news.length?`ニュース「${news[news.length-1].headline}」（シミュレーション）を${news[news.length-1].sent>0?'好材料':'悪材料'}と見ています。`:'目立ったニュースはありません。'}私の見立ては${sideJa(an.ren.side)}${an.ren.conf}%。`;
+  if(intent==='outlook'||intent==='market'||intent==='general')return`${Market.isReal(a)?'':'（'+I.short+'は現在シミュレーション価格です）'}${I.short}は1時間${pct(Market.change(a))}、短期モメンタム${pct(sn.mom5)}。${news.length?`ニュース「${news[news.length-1].headline}」（シミュレーション）を${news[news.length-1].sent>0?'好材料':'悪材料'}と見ています。`:'目立ったニュースはありません。'}私の見立ては${sideJa(an.ren.side)}${an.ren.conf}%。`;
   if(intent==='learning'){const b=bestAsset('ren');return`市場観測の精度は${accP(state.agents.ren)}、重み×${state.agents.ren.weight.toFixed(2)}。得意市場は${b?INSTR[b].short:'まだ学習中'}、${I.short}では${acc2('ren')}です。`}
   if(intent==='reason')return`${I.short}に注目している理由は、ニュースのセンチメントと直近の値動きです。短期モメンタム${pct(sn.mom3)}、ATR比${sn.atrPct.toFixed(2)}%。`;
   return`${I.short}を監視中。${sideJa(an.ren.side)}寄り（${an.ren.conf}%）。`;
@@ -1734,6 +1869,66 @@ function runBacktest(kind,tf,nBars){
  setTimeout(step,30);
 }
 
+/* ===== replay learning: walk real past candles, trade virtually, update AI learning (not the account) ===== */
+const RP={running:false,progress:0,last:null};
+function replayAssets(){return ASSET_ORDER.filter(a=>Market.isReal(a)&&Market.status[a]==='live')}
+function replayOne(a,tf){
+ const P=btPrepare(a,tf,1000),{bars,snaps}=P,maxHold=state.strategy.horizon==='中期'?60:36,key=a+'|'+tf,from=fin(state.meta.replayT[key],0),macro=Market.macro(),S0=state.strategy;
+ let pos=null,n=0,wins=0,lastDone=from;const RL=state.replayLearning;
+ const endOpen=bars.length-maxHold-1;
+ for(let i=50;i<bars.length;i++){
+  const b=bars[i];
+  if(pos){const dir=pos.dir;let exit=null;
+   if(dir>0){if(b[3]<=pos.sl)exit=pos.sl;else if(b[2]>=pos.tp)exit=pos.tp}else{if(b[2]>=pos.sl)exit=pos.sl;else if(b[3]<=pos.tp)exit=pos.tp}
+   if(exit==null&&i-pos.i>=maxHold)exit=b[4];
+   if(exit!=null){
+    const R=(exit-pos.entry)*dir/pos.dist,win=R>0,outcome=win?pos.side:(pos.side==='BUY'?'SELL':'BUY');
+    recordCall('ren',{asset:a,tf,regime:pos.reg,correct:pos.renSide===outcome,conf:pos.renConf,pnl:0});
+    recordCall('quon',{asset:a,tf,regime:pos.reg,correct:pos.quSide===outcome,conf:pos.quConf,pnl:0});
+    recordCall('misa',{asset:a,tf,regime:pos.reg,correct:win,conf:pos.conf,pnl:0,rr:R});
+    armRecord('sl',pos.slArm,R);armRecord('rr',pos.rrArm,R);recordLens(pos.lens,outcome);
+    aggBump(RL.markets,a,win,0,R);aggBump(RL.regimes,pos.reg,win,0,R);
+    if(pos.keys.length)recordMistakes(pos.keys,win,null);
+    n++;if(win)wins++;lastDone=b[0];pos=null}
+   continue;
+  }
+  if(b[0]<=from||i>endOpen)continue;const sn=snaps[i];if(!sn)continue;
+  const c={asset:a,tf,sn,long:P.longAt(b[0]),macro,dd:0,lossStreak:0,horizon:S0.horizon};
+  const blend=lensBlend(a,tf,state.lens.mix,{ctx:c});if(blend.side==='SKIP')continue;
+  const renS=clamp(sn.mom3/Math.max(.02,sn.atrPct),-2,2)*.5,momC=sn.trendStr*.5+sn.mom5/Math.max(.02,sn.atrPct)*.35,revC=-sn.z*.8;
+  const quS=sn.regime==='上昇トレンド'||sn.regime==='下降トレンド'?momC:sn.regime==='レンジ'||sn.regime==='低ボラ'?revC:(momC*.5+revC*.3)*.6;
+  const wR=ctxWeight('ren',a,tf,sn.regime),wQ=ctxWeight('quon',a,tf,sn.regime);
+  const sR=Math.sign(renS)*Math.min(84,Math.abs(renS)*28),sQ=Math.sign(quS)*Math.min(88,Math.abs(quS)*30);
+  const Sx=(wR*sR+wQ*sQ)/(wR+wQ)*.58+blend.signed*.42,dir=Sx>=0?1:-1,side=dir>0?'BUY':'SELL';
+  const conf=50+clamp(Math.abs(Sx)*.55,0,45);
+  if(conf<PASS_LINE[S0.mode]-6&&rnd()>.2)continue;
+  const keys=[];if(sn.regime==='高ボラ'&&Math.sign(sn.mom5)&&Math.sign(sn.mom5)!==dir)keys.push('hv_counter');if(a==='BTCUSD'&&sn.confirm*dir<2)keys.push('btc_early');if(sn.regime==='レンジ'&&Math.sign(sn.mom5)===dir&&Math.abs(sn.z)>1)keys.push('range_momo');
+  const slArm=pickArm('sl'),rrArm=pickArm('rr'),dist=sn.atr*slArm*(S0.horizon==='中期'?1.33:1);
+  pos={i,dir,side,entry:b[4],sl:b[4]-dir*dist,tp:b[4]+dir*dist*rrArm,dist,slArm,rrArm,reg:sn.regime,conf,keys,
+   renSide:sR>=0?'BUY':'SELL',renConf:50+Math.min(42,Math.abs(sR)/2),quSide:sQ>=0?'BUY':'SELL',quConf:50+Math.min(44,Math.abs(sQ)/2),
+   lens:blend.verdicts.map(v=>({id:v.id,side:v.side,conf:v.conf,share:v.share}))};
+ }
+ state.meta.replayT[key]=Math.max(from,lastDone);
+ return{a,tf,n,wins};
+}
+function runReplay(){
+ if(RP.running)return;const as=replayAssets();if(!as.length){toast('リアル価格のデータがまだありません');return}
+ RP.running=true;RP.progress=0;const tf=horizonTf(),res=[];let k=0;renderReplayState();
+ const step=()=>{
+  try{res.push(replayOne(as[k],tf))}catch(e){console.error(e)}
+  k++;RP.progress=k/as.length;
+  if(k<as.length){renderReplayState();setTimeout(step,40);return}
+  const n=res.reduce((s,r)=>s+r.n,0),w=res.reduce((s,r)=>s+r.wins,0);state.meta.replayTrades+=n;RP.running=false;
+  RP.last={at:nowStr(),tf,n,w,per:res};
+  const txt=n?`実際の値動き（${tf}足）で${n}件の仮想取引を検証し、AIの重み・損切り/利確の距離・失敗パターンを学習しました（勝率${Math.round(w/n*100)}%）。`:'新しく学習できる値動きがありませんでした（前回のリプレイ以降のデータが少ないため）。時間をおいて再実行してください。';
+  state.journal.push({t:state.sim.t,time:nowStr(),kind:'リプレイ学習',asset:null,text:txt,win:true});addLog('AI学習',txt,'⏪');
+  enqueueChat([mkMsg('quon',txt),mkMsg('misa','リプレイの結果は口座の損益とは別に記録しています。ここで学んだ損切り・利確の距離は通常モードでも使います。')]);
+  markDirty();renderReplayState();UIC.learnVer=-1;renderActive();
+ };
+ setTimeout(step,40);
+}
+function renderReplayState(){const el=$('replayBtn');if(!el)return;el.disabled=RP.running;el.textContent=RP.running?`リプレイ学習中… ${Math.round(RP.progress*100)}%`:'過去の実データで一気に学習（リプレイ）'}
+
 /* ===== ui: tabs, company, chart tab, calculator ===== */
 let activeTab='company',tickN=0,audioCtx=null;
 const UIC={office:'',segs:'',cmpSeg:'',learnVer:-1,learnTick:0,lensSig:'',skillsSig:'',msgSig:''};
@@ -1743,7 +1938,7 @@ function rankInfo(){const l=state.company.level;if(l<3)return{name:'新興ファ
 function gainXp(n,why){const C=state.company;C.xp+=fin(n);while(C.xp>=1000){C.xp-=1000;C.level++;addLog('システム',`会社レベルが Lv.${C.level} になりました`,'🎉');toast(`🎉 会社レベルが Lv.${C.level} に上がりました`);beep('level')}markDirty()}
 /* analysis cache (committee pre-evaluation is read-only) */
 const AC=new Map();
-function getAnalysis(a){const key=[Math.floor(Market.ver/3),state.meta.learnVer,state.strategy.mode,state.strategy.risk,state.strategy.horizon,LENS_IDS.map(k=>state.lens.mix[k]).join(','),state.positions.length,state.ea.kill,state.account.lossStreak,UIC.lensEdit||0].join('|');const c=AC.get(a);if(c&&c.key===key)return c.r;const r=analyze(a);AC.set(a,{key,r});return r}
+function getAnalysis(a){const key=[Math.floor(Market.ver/3),state.meta.learnVer,state.strategy.mode,state.strategy.risk,state.strategy.horizon,LENS_IDS.map(k=>state.lens.mix[k]).join(','),state.positions.length,state.ea.kill,state.account.lossStreak,UIC.lensEdit||0,state.settings.learnMode,state.settings.priceMode,Market.status[a],state.meta.learnVer%7].join('|');const c=AC.get(a);if(c&&c.key===key)return c.r;const r=analyze(a);AC.set(a,{key,r});return r}
 
 function setTab(t){
  if(!['company','chart','ops','learn','chat'].includes(t))t='company';activeTab=t;
@@ -1757,8 +1952,8 @@ function setTab(t){
 }
 function renderHeader(){
  const E=state.ea,b=$('acctBadge');b.className='badge'+(E.kill?' kill':E.mode==='live'?' live-on':'');
- b.textContent=E.kill?'KILL SWITCH':E.mode==='live'?'ライブ（外部ブリッジ）':'デモ口座・ペーパー';
- $('liveDot').classList.toggle('off',!state.settings.engine||E.kill);$('liveText').textContent=E.kill?'新規注文 停止中':state.settings.engine?(E.mode==='off'?'分析のみ（自動執行停止）':'AI投資会社 稼働中'):'AI自動運用 一時停止中';
+ b.textContent=E.kill?'KILL SWITCH':E.mode==='live'?'ライブ（外部ブリッジ）':(state.settings.priceMode==='real'?'デモ・リアル':'デモ・シミュ')+(state.settings.learnMode?'・学習':'');
+ $('liveDot').classList.toggle('off',!state.settings.engine||E.kill);$('liveText').textContent=E.kill?'新規注文 停止中':state.settings.engine?(E.mode==='off'?'分析のみ（自動執行停止）':state.settings.learnMode?'学習モード稼働中':'AI投資会社 稼働中'):'AI自動運用 一時停止中';
 }
 let ptrDown=false;
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('#chartCanvas'))ptrDown=true},true);
@@ -1787,7 +1982,7 @@ function renderCompany(){
  renderOffice();
  const C=state.company,R=rankInfo();$('levelText').textContent=`会社 Lv.${C.level}`;$('xpBar').style.width=clamp(C.xp/10,0,100)+'%';$('xpText').textContent=`${Math.round(C.xp)} / 1000 XP`;$('rankText').textContent='ランク：'+R.name;$('nextRank').textContent='次：'+R.next;
  $('assets').innerHTML=ASSET_ORDER.map(a=>{const I=INSTR[a],ch=Market.change(a),d=getAnalysis(a),hot=isFocus(a)||state.positions.some(p=>p.asset===a);
-  return`<div class="asset ${hot?'hot':''}" data-go-chart="${a}"><div class="asset-name"><span>${I.label}</span><span class="asset-badge">${CLS_NAME[I.cls]}</span></div><div class="asset-price">${fmtPx(a,Market.price(a))}</div><div class="asset-move ${ch>=0?'pos':'neg'}">${pct(ch)}（1時間）</div>${sparkSvg(a)}<div class="signal"><span>${Market.snap(a,horizonTf()).regime}</span><span class="${d.approved?'pos':'muted'}">${sideJa(d.side)} ${d.conf}%</span></div></div>`}).join('');
+  return`<div class="asset ${hot?'hot':''}" data-go-chart="${a}"><div class="asset-name"><span>${I.label}</span><span class="pill ${Market.srcTag(a)[1]}" style="font-size:9px;padding:1px 6px">${Market.srcTag(a)[0]}</span></div><div class="asset-price">${fmtPx(a,Market.price(a))}</div><div class="asset-move ${ch>=0?'pos':'neg'}">${pct(ch)}（1時間）</div>${sparkSvg(a)}<div class="signal"><span>${Market.snap(a,horizonTf()).regime}</span><span class="${d.approved?'pos':'muted'}">${sideJa(d.side)} ${d.conf}%</span></div></div>`}).join('');
  $('logs').innerHTML=state.logs.slice(-10).reverse().map(l=>`<div class="logrow"><time>${esc(l.time)}</time><div class="eventico">${esc(l.icon)}</div><div class="body"><b>${esc(l.source)}</b> ${esc(l.text)}</div></div>`).join('')||'<div class="empty">まだアクションはありません。</div>';
 }
 function sparkSvg(a){const c=Market.candles(a,'5m').slice(-40).map(b=>b[4]);if(c.length<2)return'<svg class="spark"></svg>';const hi=Math.max(...c),lo=Math.min(...c),r=hi-lo||1;const pts=c.map((v,i)=>`${(i/(c.length-1)*100).toFixed(1)},${(24-(v-lo)/r*22).toFixed(1)}`).join(' ');const up=c[c.length-1]>=c[0];return`<svg class="spark" viewBox="0 0 100 26" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${up?'#55f6b2':'#ff607d'}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`}
@@ -1808,11 +2003,10 @@ function renderChartSegs(){
  $('assetSeg').innerHTML=ASSET_ORDER.map(x=>`<button data-ca="${x}" class="${x===a?'on':''}">${INSTR[x].short}</button>`).join('');
  $('tfSeg').innerHTML=TF_LIST.map(x=>`<button data-tf="${x}" class="${x===tf?'on':''}">${x}</button>`).join('');
  const I=INSTR[a];$('tvLink').href=`https://jp.tradingview.com/chart/?symbol=${encodeURIComponent(I.tv)}&interval=${TF_TV[tf]}`;
- $('chartLabel').textContent=`${I.label} · ${tf}足（シミュレーション価格）`;
 }
 function renderChartTab(full){
  const a=state.settings.chartAsset,ch=Market.change(a),sn=Market.snap(a,state.settings.chartTf);
- renderChartSegs();
+ renderChartSegs();$('chartLabel').textContent=`${INSTR[a].label} · ${state.settings.chartTf}足・${Market.statusText(a)}`;
  $('chartPrice').textContent=fmtPx(a,Market.price(a));$('chartChange').textContent=`1時間 ${pct(ch)}`;$('chartChange').className='small '+(ch>=0?'pos':'neg');
  $('chartRegime').textContent=`${sn.regime}・${trendText(sn)}`;
  if(state.calc.asset!==a)calcFromProposal(true);
@@ -1907,6 +2101,7 @@ function eaTitle(){const E=state.ea;if(E.kill)return['Kill Switch 作動中','of
  if(E.mode==='off')return['EA未接続・自動執行停止','',"AI委員会の分析は続けますが、自動では注文しません。オーナーの手動ペーパー発注のみ有効です。"];
  return['EA未接続・ペーパー自動執行','ok','AI委員会が承認した注文を、アプリ内のデモ口座で自動執行します。MT4/MT5や実口座には接続していません。']}
 function renderOps(){
+ renderFeedPanel();
  const E=state.ea,L=E.limits,[t,cls,note]=eaTitle();
  $('eaModeText').textContent=E.mode==='live'?'ライブ（外部）':E.mode==='off'?'停止':'ペーパー';
  $('eaLight').className='ea-light '+(E.kill?'off':cls);$('eaStatusTitle').textContent=t;$('eaStatusNote').textContent=note;
@@ -1914,7 +2109,7 @@ function renderOps(){
  const kb=$('killBtn');kb.classList.toggle('on',E.kill);kb.textContent=E.kill?'KILL SWITCH 作動中（タップで解除）':'KILL SWITCH（全新規注文を停止）';
  const dd=drawdownPct(),dl=dayLossPct(),stale=(Date.now()-Market.lastReal)/1000;
  const chk=(ok,txt)=>`<span class="${ok?'pos':'neg'}">${ok?'✓':'✕'}</span> ${txt}`;
- $('eaChecks').innerHTML=[chk(!E.kill,'Kill Switch'),chk(dd<L.maxDDPct,`DD ${dd.toFixed(2)}% / 上限${L.maxDDPct}%`),chk(dl<L.maxDailyLossPct,`日次損失 ${dl.toFixed(2)}% / 上限${L.maxDailyLossPct}%`),chk(state.positions.length<L.maxPositions,`ポジション ${state.positions.length} / ${L.maxPositions}`),chk(!(state.account.lossStreak>=L.maxConsecLoss&&state.sim.t<E.cooldownUntilSim),`連敗 ${state.account.lossStreak} / 停止${L.maxConsecLoss}`),chk(stale<L.maxStaleSec,`市場データ ${stale<2?'最新':Math.round(stale)+'秒前'}`),`1取引リスク上限 ${L.maxRiskPct}%・最大ロット ${L.maxLot}・Exposure ${L.maxExposurePct}%・相関 ${L.maxCorrExposurePct}%・スリッページ ${L.maxSlippagePips}pips・シグナル有効 ${Math.round(L.maxSignalAgeSec/60)}分`].join('<br>');
+ $('eaChecks').innerHTML=(learnMode()?'<b class="warnc">学習モード中：DD・日次損失・連敗による自動停止はオフ（Kill Switchと安全装置のその他の項目は有効）</b><br>':'')+[chk(!E.kill,'Kill Switch'),chk(dd<L.maxDDPct,`DD ${dd.toFixed(2)}% / 上限${L.maxDDPct}%`),chk(dl<L.maxDailyLossPct,`日次損失 ${dl.toFixed(2)}% / 上限${L.maxDailyLossPct}%`),chk(state.positions.length<L.maxPositions,`ポジション ${state.positions.length} / ${L.maxPositions}`),chk(!(state.account.lossStreak>=L.maxConsecLoss&&state.sim.t<E.cooldownUntilSim),`連敗 ${state.account.lossStreak} / 停止${L.maxConsecLoss}`),chk(stale<L.maxStaleSec,`市場データ ${stale<2?'最新':Math.round(stale)+'秒前'}`),`1取引リスク上限 ${L.maxRiskPct}%・最大ロット ${L.maxLot}・Exposure ${L.maxExposurePct}%・相関 ${L.maxCorrExposurePct}%・スリッページ ${L.maxSlippagePips}pips・シグナル有効 ${Math.round(L.maxSignalAgeSec/60)}分`].join('<br>');
  $('posCount').textContent=state.positions.length+'件';
  $('positions').innerHTML=state.positions.map(p=>{const I=INSTR[p.asset],held=Math.round((state.sim.t-p.openedSim)/MIN);
   return`<div class="posrow"><div class="poshead"><div><span class="side ${p.side==='BUY'?'buy':'sell'}">${sideJa(p.side)}</span> <b>${I.label}</b> <span class="small muted">${fmtLot(p.lot)}ロット</span></div><b class="${p.pnl>=0?'pos':'neg'} num">${signedYen(p.pnl)}</b></div>
@@ -1977,12 +2172,60 @@ function enableLive(){
  E.mode='live';addLog('EA','ライブモード（外部ブリッジ）へ切替','📡');state.chat.push(mkMsg('rei','ライブモードに切り替わりました。安全装置は同じ基準で動作し、送信失敗時は即座に停止します。'));markDirty();closeSheet();renderActive();
 }
 
+/* ---------- price data / learning mode panel ---------- */
+function renderFeedPanel(){
+ const S=state.settings,real=S.priceMode==='real',C=Feed.credits(),sig=[S.priceMode,S.learnMode,S.learnRisk,!!normText(S.tdKey),S.tdNasdaq].join('|');
+ $('feedModeText').textContent=(real?'リアル価格':'シミュレーション')+(S.learnMode?'・学習モード':'');
+ if(UIC.feedSig!==sig||!$('feedStatus')){UIC.feedSig=sig;
+  $('feedPanel').innerHTML=`<div class="seg"><button data-pm="real" class="${real?'on':''}">リアル価格</button><button data-pm="sim" class="${real?'':'on'}">シミュレーション（高速）</button></div>
+  <div id="feedStatus" style="margin-top:8px"></div>
+  ${real?`<details class="fold"><summary>GOLD・USDJPY・NASDAQもリアルにする（無料APIキー）</summary><div class="inner">
+   <div class="note">BTC・ETHは登録不要でリアル価格です。残りの3銘柄は、Twelve Data（twelvedata.com）に無料登録して取得したAPIキーを入れるとリアル価格になります。無料枠は1日800回で、アプリは上限を超えないよう自動で更新間隔を調整します（1〜5分ごと）。キーはこの端末内だけに保存し、バックアップには含めません。</div>
+   <div class="field" style="margin-top:8px"><label>Twelve Data APIキー</label><input id="tdKey" type="password" autocomplete="off" placeholder="${S.tdKey?'設定済み（変更する場合は入力）':'未設定'}"></div>
+   <div class="field" style="margin-top:8px"><label>NASDAQに使う銘柄</label><select id="tdNasdaq"><option value="QQQ" ${S.tdNasdaq!=='NDX'?'selected':''}>QQQ（NASDAQ100連動ETF・無料プランで利用可）</option><option value="NDX" ${S.tdNasdaq==='NDX'?'selected':''}>NDX（指数・プランによっては取得不可）</option></select></div>
+   <div class="btnrow" style="margin-top:8px"><button class="btn sm primary" data-act="tdSave">接続テストして保存</button><button class="btn sm" data-act="tdClear">キーを削除</button></div>
+   <div class="note" id="tdInfo" style="margin-top:6px"></div></div></details>`:'<div class="note" style="margin-top:6px">シミュレーションは20倍速で相場を生成します。仕組みの確認用です。</div>'}
+  <label class="setrow" style="margin-top:6px"><span><b>学習モード</b><br><span class="small muted">取引回数を増やし、損切り・利確の距離をAIが自由に試します。日次損失上限・連敗停止・DDでの自動停止はオフ。口座が30%を下回ると自動で補充して続けます。</span></span><input type="checkbox" data-set="learnMode" ${S.learnMode?'checked':''}></label>
+  <div class="setrow"><span>学習モードの1取引リスク</span><select id="learnRisk">${[.5,1,2].map(v=>`<option value="${v}" ${+S.learnRisk===v?'selected':''}>${v}%</option>`).join('')}</select></div>
+  <button class="btn block" id="replayBtn" data-act="replayRun" style="margin-top:8px">過去の実データで一気に学習（リプレイ）</button>
+  <div class="note" style="margin-top:6px">リプレイは、読み込んだ実際の値動き（最大約1000本）を1本ずつ進めて仮想取引し、AIの判断重み・損切り/利確の距離・失敗パターンを学習します。口座の損益には影響しません。同じ期間は二重に学習しません。</div>
+  <div class="note" id="learnInfo" style="margin-top:6px"></div>`;
+  renderReplayState();
+ }
+ $('feedStatus').innerHTML=ASSET_ORDER.map(a=>{const [tag,cls]=Market.srcTag(a);return`<div class="kv"><span>${INSTR[a].short} <span class="pill ${cls}" style="font-size:9px;padding:1px 6px">${tag}</span><br><span class="small muted">${esc(Market.statusText(a))}</span></span><b>${fmtPx(a,Market.price(a))}</b></div>`}).join('')
+  +(real&&!Market.isReal('USDJPY')?`<div class="note">円換算レート：${Market.fxRef?Market.fxRef.toFixed(2)+'円（公開の参考レート・1時間ごと更新）':'取得中（取得できるまでシミュレーション値を使用）'}</div>`:'');
+ const ti=$('tdInfo');if(ti)ti.textContent=`本日のTwelve Data使用：${C.used} / 800回${S.tdKey?'・キー設定済み':''}`;
+ const li=$('learnInfo');if(li)li.textContent=`学習モードでの取引 ${state.meta.learnTrades}件・リプレイ学習 ${state.meta.replayTrades}件・口座補充 ${state.meta.refills}回`;
+}
+function setPriceMode(m){
+ if(m===state.settings.priceMode)return;
+ if(state.positions.length&&!confirm(`価格データを切り替えます。保有中の${state.positions.length}件は現在値で決済されます。よろしいですか？`))return;
+ state.settings.priceMode=m;applyPriceMode();toast(m==='real'?'📡 リアル価格モード：データを読み込み中…':'シミュレーションモードに切り替えました');renderActive(true);
+}
+function applyPriceMode(){
+ const m=state.settings.priceMode;
+ if(state.settings.priceModeApplied!==m){
+  for(const p of state.positions.slice())closePosition(p.id,Market.price(p.asset),'価格モード切替');
+  state.pendingCF=[];state.shadow=[];Committee.queue=[];
+  state.sim.t=m==='real'?Date.now():Math.max(Date.now(),...ASSET_ORDER.map(a=>fin(Market.candles(a,'1m').slice(-1)[0]?.[0])));
+  if(state.settings.priceModeApplied)addLog('システム',m==='real'?'リアル価格モードに切り替えました':'シミュレーションモードに切り替えました','📡');
+  state.settings.priceModeApplied=m;
+ }else if(m==='real')state.sim.t=Date.now();
+ Feed.reconfigure();AC.clear();state.calc.asset=null;markDirty();
+}
+async function tdSave(){
+ const el=$('tdKey'),key=normText(el?.value);if(!key){toast('APIキーを入力してください');return}
+ toast('接続テスト中…');
+ try{const px=await Feed.testKey(key);state.settings.tdKey=key;el.value='';Feed.reconfigure();markDirty();UIC.feedSig='';renderActive(true);toast(`✅ 接続OK（USDJPY ${px.toFixed(3)}）。3銘柄をリアル価格で読み込みます`)}
+ catch(e){toast('⚠ 接続できませんでした：'+e.message)}
+}
+
 /* ===== ui: learning center, mistakes, lenses, compare, skills, backtest, journal ===== */
 const accTxt=b=>b&&b.n>=1?Math.round(acc(b)*100)+'%':'—';
 const nTxt=b=>b?(b.raw!=null?b.raw:Math.round(b.n)):0;
 function renderLearn(full){
  const lv=state.meta.learnVer;const heavy=full||lv!==UIC.learnVer||tickN%6===0;
- if(heavy){UIC.learnVer=lv;renderLearnSummary();renderLearnAgents();renderBreakdown();renderMistakes();renderJournal()}
+ if(heavy){UIC.learnVer=lv;renderLearnSummary();renderLearnAgents();renderBreakdown();renderMistakes();renderArms();renderJournal()}
  renderLensPanel(full);if(full||tickN%3===0)renderCompare();renderSkills(full);if(full||!$('backtest').innerHTML)renderBacktest();
 }
 function renderLearnSummary(){
@@ -1991,6 +2234,7 @@ function renderLearnSummary(){
  $('learnSummary').innerHTML=`<div class="learn-summary">
  <div class="learn-mini"><b>${total}</b><small>総学習回数</small></div><div class="learn-mini"><b>${A.trades}</b><small>総取引数</small></div><div class="learn-mini"><b>${state.meta.reviewsTotal}</b><small>取引レビュー</small></div>
  <div class="learn-mini"><b>${rec.length?Math.round(recC/rec.length*100)+'%':'—'}</b><small>直近判断精度（${rec.length}件）</small></div><div class="learn-mini"><b>${total?Math.round(correct/total*100)+'%':'—'}</b><small>累積精度</small></div><div class="learn-mini"><b>${skipN?Math.round(skipOk/skipN*100)+'%':'—'}</b><small>見送り成功率（${skipN}件）</small></div></div>
+ <div class="small" style="margin-bottom:6px">学習モードの取引 <b>${state.meta.learnTrades}</b>件・リプレイ学習 <b>${state.meta.replayTrades}</b>件・口座補充 <b>${state.meta.refills}</b>回</div>
  <div class="note">会社XP・Lv・ランクはゲーム上の成長で、ここに表示する学習データとは別に計算しています。サンプル${LEARN.minSamples}件未満のAIは判断weightを1付近に据え置き、古いデータは徐々に減衰させます（weight範囲 ${LEARN.wMin}〜${LEARN.wMax}、探索率${Math.round(LEARN.explore*100)}%）。</div>
  ${lastW?`<div class="lesson"><b class="pos">最近の成功</b>：${esc(lastW.lesson)}</div>`:''}${lastL?`<div class="lesson" style="border-color:#ff607d33;background:#ff607d0a"><b class="neg">最近の失敗</b>：${esc(lastL.lesson)}</div>`:''}
  ${state.ruleChanges.length?`<div class="lab" style="margin-top:10px">最近変更したルール</div>${state.ruleChanges.slice(-4).reverse().map(r=>`<div class="journal">${esc(r.time)}　${esc(r.text)}</div>`).join('')}`:''}
@@ -2108,6 +2352,15 @@ function openAgentDetail(id){
  <div class="note">精度は取引の結果（Post Trade Review）と見送りの事後検証から計算しています。</div>`);
 }
 
+function renderArms(){
+ const row=(kind,arm,label)=>{const st=state.armLearn[kind]?.[String(arm)],b=bestArm(kind);return`<tr><td>${label}${b===arm?' <span class="pill g" style="font-size:9px;padding:1px 5px">採用</span>':''}</td><td>${st?st.n:0}</td><td class="${st&&st.sum>=0?'pos':'neg'}">${st&&st.n?(st.sum/st.n).toFixed(2)+'R':'—'}</td><td>${st&&st.n?Math.round(st.wins/st.n*100)+'%':'—'}</td></tr>`};
+ const R=state.rules,hn=fin(R.holdN);
+ $('armPanel').innerHTML=`<div class="lab">損切り（SL）の距離</div><div style="overflow-x:auto"><table class="t"><tr><th>ATR倍率</th><th>件数</th><th>平均R</th><th>勝率</th></tr>${ARMS.sl.map(a=>row('sl',a,a+'倍')).join('')}</table></div>
+ <div class="lab" style="margin-top:10px">利確（TP）の距離</div><div style="overflow-x:auto"><table class="t"><tr><th>RR</th><th>件数</th><th>平均R</th><th>勝率</th></tr>${ARMS.rr.map(a=>row('rr',a,'RR '+a)).join('')}</table></div>
+ <div class="lesson">${hn?`損切りなしで持ち続けていたら（決済30分後の価格で比較・${hn}件）：実際 <b class="${R.holdActual>=0?'pos':'neg'}">${signedYen(R.holdActual)}</b> ／ 損切りなし <b class="${R.holdPnl>=0?'pos':'neg'}">${signedYen(R.holdPnl)}</b>。${R.holdPnl>R.holdActual?'この期間は、損切りせずに持っていた方が結果は良かったです。ただし数件の大損で逆転しやすいため、件数が増えるまで判断は保留します。':'この期間は、損切りをした方が結果は良かったです。'}`:'損切りなしで持ち続けていた場合との比較は、決済から30分後に記録されます。'}</div>
+ <div class="note" style="margin-top:6px">平均Rは「1回の取引で、想定リスクの何倍の利益（マイナスは損失）になったか」です。ロットはリスク額から逆算するので、損切りが遠いほどロットは小さくなります。学習モードではAIが距離を試し、20件以上たまった距離の中で成績の良いもの（「採用」）を通常モードで使います。少ない件数での偶然の好成績に合わせすぎないためです。</div>`;
+}
+
 /* ===== ui: chat, sheets, settings, backup, event delegation ===== */
 function renderTargets(){const html=TARGETS.map(t=>`<button class="target ${t[0]===chatTarget?'on':''}" data-target="${t[0]}">${t[1]?employee(t[1]).name+'（'+t[0]+'）':'全員'}</button>`).join('');if($('targets').innerHTML!==html)$('targets').innerHTML=html}
 function renderQuick(){if(!$('quick').innerHTML)$('quick').innerHTML=QUICK.map(q=>`<button data-q="${esc(q)}">${esc(q)}</button>`).join('')}
@@ -2147,7 +2400,7 @@ function openSettings(){
  <div class="btnrow" style="margin-top:8px">${si.v4?'<button class="btn sm" data-act="remigrate">v4から再移行</button>':''}<button class="btn sm danger" data-act="resetAll">初期化</button></div>
  <div class="note" style="margin-top:12px">NEXUS AI FUND v${VERSION}。外部API・課金なしで全機能が動作します。価格はアプリ内シミュレーションで、実在の市場データではありません。</div>`);
 }
-function backupObj(){flushSave();return{app:'NEXUS_AI_FUND',version:VERSION,exportedAt:new Date().toISOString(),state}}
+function backupObj(){flushSave();const st=JSON.parse(JSON.stringify(state));st.settings.tdKey='';return{app:'NEXUS_AI_FUND',version:VERSION,exportedAt:new Date().toISOString(),state:st}}
 function exportBackup(){
  const txt=JSON.stringify(backupObj()),name=`nexus-ai-fund-backup-${new Date().toISOString().slice(0,10)}.json`;
  try{const blob=new Blob([txt],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);toast('📦 バックアップを書き出しました')}
@@ -2177,7 +2430,8 @@ function resetAll(){
 /* ---------- actions ---------- */
 const ACT={
  openSettings,closeSheet,skipCommittee,openSafety,saveSafety,bridgeTest,enableLive,exportBackup,resetAll,
- goChat:()=>setTab('chat'),
+ goChat:()=>setTab('chat'),tdSave,replayRun:()=>runReplay(),
+ tdClear:()=>{if(!state.settings.tdKey){toast('キーは設定されていません');return}if(!confirm('APIキーを削除しますか？（3銘柄はシミュレーション価格に戻ります）'))return;state.settings.tdKey='';Feed.reconfigure();AC.clear();UIC.feedSig='';markDirty();renderActive(true);toast('APIキーを削除しました')},
  cycleStrategy:el=>{const k=el.dataset.k,o=STRAT_OPTS[k],S=state.strategy;S[k]=o[(o.indexOf(S[k])+1)%o.length];addLog('オーナー指示',`運用方針を「${strategyText()}」へ変更`,'👑');enqueueChat([mkMsg('misa',`了解。「${strategyText()}」で運用します。`)]);gainXp(4,'方針変更');markDirty();renderActive()},
  chartZoom:el=>Chart.zoom(+el.dataset.z),chartLatest:()=>Chart.latest(),
  toggleLineEdit:()=>{Chart.setEditing(!Chart.editing);$('lineEditBtn').textContent=Chart.editing?'ライン編集 ON':'ライン編集 OFF';$('lineEditBtn').classList.toggle('primary',Chart.editing);if(Chart.editing&&state.calc.asset!==state.settings.chartAsset)calcFromProposal(true);Chart.request();toast(Chart.editing?'TP・SL・Entryのラインを上下にドラッグできます':'ライン編集を終了')},
@@ -2221,6 +2475,7 @@ function bindEvents(){
   const tf=t.closest('[data-tf]');if(tf){state.settings.chartTf=tf.dataset.tf;UIC.segs='';Chart.latest();markDirty();renderChartTab(true);return}
   const sd=t.closest('#calcSide [data-side]');if(sd){const C=state.calc,prev=C.side;C.side=sd.dataset.side;C.asset=state.settings.chartAsset;if(prev!==C.side&&fin(C.entry)>0){const dt=fin(C.tp,NaN),ds=fin(C.sl,NaN),I=INSTR[C.asset];if(Number.isFinite(dt))C.tp=+(2*C.entry-dt).toFixed(I.dec);if(Number.isFinite(ds))C.sl=+(2*C.entry-ds).toFixed(I.dec)}calcSyncInputs(true);renderCalcOut();renderLotOut();Chart.request();markDirty();return}
   const md=t.closest('#eaModeSeg [data-mode]');if(md){const m=md.dataset.mode;if(m==='live'){openLiveSheet();return}state.ea.mode=m;addLog('EA',m==='paper'?'ペーパー自動執行を開始':'自動執行を停止','⚙️');markDirty();renderActive();toast(m==='paper'?'ペーパー自動執行':'自動執行を停止しました');return}
+  const pm=t.closest('[data-pm]');if(pm){setPriceMode(pm.dataset.pm);return}
   const cm=t.closest('[data-cmp]');if(cm){state.settings.cmpAsset=cm.dataset.cmp;markDirty();renderCompare();return}
   const bk=t.closest('[data-btk]');if(bk&&!BT.running){BT.kind=bk.dataset.btk;BT.result=null;renderBacktest();return}
   const tg=t.closest('[data-target]');if(tg){chatTarget=tg.dataset.target;renderTargets();return}
@@ -2233,9 +2488,11 @@ function bindEvents(){
  });
  document.addEventListener('change',e=>{const t=e.target;
   if(t.dataset.lens){UIC.lensSig='';AC.clear();const mix=state.lens.mix;addLog('オーナー指示',`思考レンズを「${LENS_IDS.filter(k=>mix[k]>0).map(k=>lensName(k)+' '+mix[k]+'%').join('・')}」に調整`,'🔭');renderLensPanel(true);renderCompare();markDirty();return}
-  if(t.dataset.set){state.settings[t.dataset.set]=t.checked;if(t.dataset.set==='engine')addLog('システム',t.checked?'AI自動運用を再開':'AI自動運用を一時停止','⚙️');UIC.skillsSig='';markDirty();renderActive();return}
+  if(t.dataset.set){state.settings[t.dataset.set]=t.checked;AC.clear();UIC.feedSig='';if(t.dataset.set==='learnMode')addLog('システム',t.checked?'学習モードを開始':'学習モードを終了（通常の安全装置に戻します）','🧪');if(t.dataset.set==='engine')addLog('システム',t.checked?'AI自動運用を再開':'AI自動運用を一時停止','⚙️');UIC.skillsSig='';markDirty();renderActive();return}
   if(t.id==='setLev'){const v=clamp(fin(t.value,25),1,1000);state.settings.leverage=v;state.calc.lev=v;t.value=v;markDirty();toast(`レバレッジ ${v}倍（証拠金計算のみに影響）`);return}
   if(t.id==='importFile'){const f=t.files&&t.files[0];if(!f)return;if(f.size>8e6){toast('ファイルが大きすぎます');t.value='';return}const r=new FileReader();r.onload=()=>{restoreFrom(r.result);t.value=''};r.onerror=()=>{toast('読み込みに失敗しました');t.value=''};r.readAsText(f);return}
+  if(t.id==='learnRisk'){state.settings.learnRisk=clamp(fin(t.value,1),.1,3);AC.clear();markDirty();toast(`学習モードのリスク ${state.settings.learnRisk}%`);return}
+  if(t.id==='tdNasdaq'){state.settings.tdNasdaq=t.value==='NDX'?'NDX':'QQQ';if(state.settings.tdKey)Feed.reconfigure();AC.clear();markDirty();renderActive(true);return}
   if(t.id==='btTf')BT.tf=t.value;if(t.id==='btBars')BT.bars=+t.value;
  });
  $('chatForm').addEventListener('submit',e=>{e.preventDefault();const i=$('chatInput');const v=i.value;i.value='';sendText(v)});
@@ -2248,7 +2505,7 @@ function onTick(){
  if(!state||document.hidden)return;tickN++;
  try{
   const A=state.account;if(A.dayKey!==dayKey()){A.dayKey=dayKey();A.dayStart=equity();A.dailyLoss=0;addLog('システム','日付が変わりました。本日の損益をリセットしました','📅')}
-  Market.tick(onPriceSub);for(const a of ASSET_ORDER)state.lastPrices[a]=Market.price(a);
+  Feed.tick(tickN);Market.tick(onPriceSub);for(const a of ASSET_ORDER)state.lastPrices[a]=Market.price(a);
   checkTimeExits();
   const n=Market.maybeNews();if(n){addLog('レン',`${INSTR[n.asset].short}：${n.headline}（シミュレーションニュース）`,'📰');if(state.settings.chatter&&!ChatQ.busy)enqueueChat([mkMsg('ren',`${INSTR[n.asset].short}のニュース「${n.headline}」を検知（シミュレーション）。${n.sent>0?'好材料':'悪材料'}として監視します。`)])}
   evalCounterfactuals();if(tickN%5===0)evalShadows();
@@ -2273,6 +2530,7 @@ async function boot(){
   const saved=await IDB.get('candles');
   Market.init(saved,state.lastPrices,state.sim.t);
   const lb=Market.candles('BTCUSD','1m').slice(-1)[0][0];state.sim.t=Math.max(state.sim.t,lb);
+  applyPriceMode();
   for(const p of state.positions)p.pnl=pnlJPY(p.asset,p.side,p.lot,p.entry,Market.price(p.asset),Market.usdjpy());
   if(!state.settings.chartAsset||!INSTR[state.settings.chartAsset])state.settings.chartAsset='BTCUSD';if(!TF[state.settings.chartTf])state.settings.chartTf='15m';if(!INSTR[state.settings.cmpAsset])state.settings.cmpAsset='ETHUSD';
   if(state.meta.migratedFrom&&state.meta.bootCount===1)enqueueChat([mkMsg('misa','v4からデータを引き継ぎました。チャート・利益計算・思考レンズ・Mistake Memoryが新しく使えます。'),mkMsg('rei','v4の保存データはバックアップとして残してあります。')]);
